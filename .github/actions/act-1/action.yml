@@ -1,0 +1,14 @@
+name: "act 1 name"
+description: "act 1 des"
+inputs:
+   a1_input_1:
+     required: true
+     description: "a1_input_1"
+runs:
+  using: "composite"
+  steps:
+    - name: set env 1
+      run: |
+        echo "in set env 1"
+        echo "MEMEME1=VALVALVAL_1" >> $GITHUB_ENV 
+      shell: bash
