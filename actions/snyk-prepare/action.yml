@@ -5,7 +5,6 @@ runs:
   using: "composite"
   steps:
     - name: Set up repo branch names (repo_branch) and tags for snyk
-      shell: bash
       env:
         SNYK_TAG_MAX_LENGTH: '50'      
       run: |
@@ -27,6 +26,7 @@ runs:
         echo "GITHUB_EVENT_NAME is [$GITHUB_EVENT_NAME]"
         echo "SNYK_GROUP_OPTS is [$SNYK_GROUP_OPTS]"
         echo "SNYK_TAGS is [$SNYK_TAGS]"
+      shell: bash
 
     - name: Set up Snyk
       uses: snyk/actions/setup@master 
