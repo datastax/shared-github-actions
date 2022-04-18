@@ -6,14 +6,13 @@ runs:
   steps:
     - name: Set up repo branch names (repo_branch) and tags for snyk
       env:
-#        SNYK_TAG_MAX_LENGTH: '50'      
-        eee1: '50'      
+        SNYK_TAG_MAX_LENGTH: '50'      
       run: |
         REAL_BRANCH=$GITHUB_REF_NAME
         if [[ ${GITHUB_EVENT_NAME} == "pull_request" ]]; then 
           REAL_BRANCH=$GITHUB_HEAD_REF 
         fi 
-        REAL_BRANCH=$(echo $REAL_BRANCH | cut -c1-${{ SNYK_TAG_MAX_LENGTH }})  
+        REAL_BRANCH=$(echo $REAL_BRANCH | cut -c1-${{ env.SNYK_TAG_MAX_LENGTH }})  
           
         TAG_REPO=${GITHUB_REPOSITORY//\//_}
         TAG_BRANCH=${REAL_BRANCH//\//_}
