@@ -1,12 +1,25 @@
 name: Snyk set up
 description: Set up repo branch names (repo_branch) and tags for snyk
+inputs:
+   python-version:
+     required: true
+     description: "python version"
+   directories:
+     required: true
+     description: "directories of python modules"
+   SNYK_TOKEN:
+     required: true
+     description: "SNYK_TOKEN"
+   SNYK_ORG_ID:
+     required: true
+     description: "SNYK_ORG_ID"
 
 runs:
   using: "composite"
   steps:
     - uses: actions/setup-python@v2
       with:
-        python-version: ${{ inputs.VERSION }}
+        python-version: ${{ inputs.python-version }}
     
     - name: set up python vevn and requirement
       shell: bash
@@ -14,7 +27,7 @@ runs:
         SNYK_TOKEN: ${{ inputs.SNYK_TOKEN }}
         SNYK_ORG_ID: ${{ inputs.SNYK_ORG_ID }}
       run: |
-        dirs=${{ inputs.dirs }}
+        dirs=${{ inputs.directories }}
         dirs=$(echo $dirs | tr ", " "\n")
 
         for d in $dirs; do
