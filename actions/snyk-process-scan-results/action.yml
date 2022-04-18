@@ -10,7 +10,6 @@ runs:
   using: "composite"
   steps:
     - name: Construct snyk scan comments
-      shell: bash    
       run : |
         snyk_url="https://app.snyk.io/org/riptano/projects"
         snyk_site="Please see scan report at: <a href=\'${snyk_url}\'>${snyk_url}</a>"
@@ -22,10 +21,10 @@ runs:
         else
           echo "SNYK_SCAN_COMMENT=$bad_msg" >> $GITHUB_ENV 
         fi
+      shell: bash    
 
     - name: Set pull request comment
       uses: actions/github-script@v6
-      shell: bash    
       if: github.event_name == 'pull_request'
       with:
         github-token: ${{ inputs.gh_repo_token }}
@@ -36,11 +35,12 @@ runs:
             repo: context.repo.repo,
             body: '${{ env.SNYK_SCAN_COMMENT }}'
           })
+      shell: bash    
 
     - name: Decision for the snyk an result, (PR gating if triggered for a PR)
-      shell: bash       
       run: |
         echo "$SNYK_SCAN_COMMENT" 
         if [[ "$SNYK_TEST_PASSED" != 'true' ]]; then
           exit 1 
         fi
+      shell: bash       
