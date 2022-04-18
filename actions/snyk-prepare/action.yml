@@ -5,6 +5,7 @@ runs:
   using: "composite"
   steps:
     - name: Set up repo branch names (repo_branch) and tags for snyk
+      shell: bash
       env:
         SNYK_TAG_MAX_LENGTH: '50'      
       run: |
@@ -12,10 +13,27 @@ runs:
         if [[ ${GITHUB_EVENT_NAME} == "pull_request" ]]; then 
           REAL_BRANCH=$GITHUB_HEAD_REF 
         fi 
+        
+        # snyk tag limitation - limit length to SNYK_TAG_MAX_LENGTH
         REAL_BRANCH=$(echo $REAL_BRANCH | cut -c1-${{ env.SNYK_TAG_MAX_LENGTH }})  
           
+        # snyk tag limitation - replace '/' with '_'
         TAG_REPO=${GITHUB_REPOSITORY//\//_}
         TAG_BRANCH=${REAL_BRANCH//\//_}
+
+        # snyk tag limitation - replace '.' with '-'
+        TAG_REPO=${TAG_REPO//./-}
+        TAG_BRANCH=${TAG_BRANCH//./-}
+        
+        echo "TAG_REPO = [$TAG_REPO]"        
+        echo "TAG_BRANCH = [$TAG_BRANCH]"
+        
+        # make sure on other unsupported characters
+        if  [[ "$TAG_BRANCH" =~ [^a-zA-Z0-9_/\.\-] ]]; then
+          echo "$TAG_BRANCH contains invalid characters for synk tags - only allow alphanumerics and '/', '.',  '-', '_' "
+          exit 2
+        fi 
+
         SNYK_GROUP_OPTS="--remote-repo-url=${GITHUB_REPOSITORY} --target-reference=${REAL_BRANCH}"
         SNYK_TAGS="--tags=repo=${TAG_REPO},branch=${TAG_BRANCH}"
         echo "SNYK_GROUP_OPTS=${SNYK_GROUP_OPTS}" >> $GITHUB_ENV
@@ -26,7 +44,7 @@ runs:
         echo "GITHUB_EVENT_NAME is [$GITHUB_EVENT_NAME]"
         echo "SNYK_GROUP_OPTS is [$SNYK_GROUP_OPTS]"
         echo "SNYK_TAGS is [$SNYK_TAGS]"
-      shell: bash
+
 
     - name: Set up Snyk
       uses: snyk/actions/setup@master 
