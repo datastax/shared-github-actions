@@ -12,6 +12,6 @@ runs:
         e1: e1_v1
       run: |
         echo "in set env 1"
-        echo "e1_v1 is [$e1_v1]"
+        echo "e1 is [$e1]"
         echo "MEMEME1=${{ inputs.a1_input_1 }}" >> $GITHUB_ENV 
       shell: bash
