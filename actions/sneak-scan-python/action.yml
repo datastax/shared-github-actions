@@ -27,7 +27,7 @@ runs:
         SNYK_TOKEN: ${{ inputs.SNYK_TOKEN }}
         SNYK_ORG_ID: ${{ inputs.SNYK_ORG_ID }}
       run: |
-        dirs=${{ inputs.directories }}
+        dirs="${{ inputs.directories }}"
         dirs=$(echo $dirs | tr ", " "\n")
 
         for d in $dirs; do
