@@ -25,6 +25,7 @@ runs:
 
     - name: Set pull request comment
       uses: actions/github-script@v6
+      shell: bash    
       if: github.event_name == 'pull_request'
       with:
         github-token: ${{ inputs.gh_repo_token }}
@@ -37,6 +38,7 @@ runs:
           })
 
     - name: Decision for the snyk an result, (PR gating if triggered for a PR)
+      shell: bash       
       run: |
         echo "$SNYK_SCAN_COMMENT" 
         if [[ "$SNYK_TEST_PASSED" != 'true' ]]; then
