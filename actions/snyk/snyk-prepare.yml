@@ -1,0 +1,32 @@
+name: Snyk set up
+description: Set up repo branch names (repo_branch) and tags for snyk
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up repo branch names (repo_branch) and tags for snyk
+      shell: bash
+      env:
+        SNYK_TAG_MAX_LENGTH: 50      
+      run: |
+        REAL_BRANCH=$GITHUB_REF_NAME
+        if [[ ${GITHUB_EVENT_NAME} == "pull_request" ]]; then 
+          REAL_BRANCH=$GITHUB_HEAD_REF 
+        fi 
+        REAL_BRANCH=$(echo $REAL_BRANCH | cut -c1-${{ SNYK_TAG_MAX_LENGTH }})  
+          
+        TAG_REPO=${GITHUB_REPOSITORY//\//_}
+        TAG_BRANCH=${REAL_BRANCH//\//_}
+        SNYK_GROUP_OPTS="--remote-repo-url=${GITHUB_REPOSITORY} --target-reference=${REAL_BRANCH}"
+        SNYK_TAGS="--tags=repo=${TAG_REPO},branch=${TAG_BRANCH}"
+        echo "SNYK_GROUP_OPTS=${SNYK_GROUP_OPTS}" >> $GITHUB_ENV
+        echo "SNYK_TAGS=${SNYK_TAGS}" >> $GITHUB_ENV
+        echo "SNYK_SEVERITY_THRESHOLD=--severity-threshold=${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}" >> $GITHUB_ENV
+        echo "SNYK_TEST_PASSED=true" >> $GITHUB_ENV
+        
+        echo "GITHUB_EVENT_NAME is [$GITHUB_EVENT_NAME]"
+        echo "SNYK_GROUP_OPTS is [$SNYK_GROUP_OPTS]"
+        echo "SNYK_TAGS is [$SNYK_TAGS]"
+
+    - name: Set up Snyk
+      uses: snyk/actions/setup@master 
