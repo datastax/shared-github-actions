@@ -18,7 +18,7 @@ runs:
     - name: Construct snyk scan comments
       shell: bash    
       run : |
-        snyk_url="https://app.snyk.io/org/riptano/projects/${{ input.snyk_report_detail_link }}"
+        snyk_url="https://app.snyk.io/org/riptano/projects/${{ inputs.snyk_report_detail_link }}"
         snyk_site="Please see scan report at: <a href=\'${snyk_url}\'>${snyk_url}</a>"
         good_msg="✅ snyk scan did not find issues with severity level <b><i>${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}</i></b> or higher. $snyk_site"
         bad_msg="🚫 snyk scan found issues with severity level <b><i>${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}</i></b> or higher! $snyk_site"
@@ -31,7 +31,7 @@ runs:
 
     - name: Set pull request comment
       uses: actions/github-script@v6
-      if: (github.event_name == 'pull_request') && ( input.pr_positive_comment_skip != 'skip' || env.SNYK_TEST_PASSED == 'false' ) 
+      if: (github.event_name == 'pull_request') && ( inputs.pr_positive_comment_skip != 'skip' || env.SNYK_TEST_PASSED == 'false' ) 
       with:
         github-token: ${{ inputs.gh_repo_token }}
         script: |
