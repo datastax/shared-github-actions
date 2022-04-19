@@ -20,7 +20,7 @@ runs:
     - name: Set up javascript
       uses: actions/setup-node@v2
       with:
-        javascript-version: ${{ inputs.javascript-version }}
+        node-version: ${{ inputs.javascript-version }}
     
     - name: Scan javascript projects 
       shell: bash
