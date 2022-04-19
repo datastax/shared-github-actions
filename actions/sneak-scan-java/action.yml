@@ -1,12 +1,12 @@
-name: Snyk javascript scan
-description: Snyk javascript scan
+name: Snyk java scan
+description: Snyk java scan (including simple maven and gradle)
 inputs:
-   python-version:
+   java-version:
      required: true
-     description: "python version"
+     description: "java version"
    directories:
      required: true
-     description: "directories of python modules"
+     description: "directories of maven modules"
    SNYK_TOKEN:
      required: true
      description: "SNYK_TOKEN"
@@ -17,12 +17,14 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Set up python
-      uses: actions/setup-python@v2
+    - name: Set up java
+      uses: actions/setup-java@v2
       with:
-        python-version: ${{ inputs.python-version }}
-    
-    - name: Scan python projects 
+        java-version: ${{ inputs.java-version }}
+        distribution: 'temurin'
+        cache: maven    
+
+    - name: Scan maven projects 
       shell: bash
       env:
         SNYK_TOKEN: ${{ inputs.SNYK_TOKEN }}
@@ -33,13 +35,10 @@ runs:
 
         for d in $dirs; do
           cd $GITHUB_WORKSPACE/$d
-          python3 -m venv venv
-          source venv/bin/activate
-          pip install -r requirements.txt
-          snyk monitor --command=venv/bin/python --org=${SNYK_ORG_ID} --file=requirements.txt \
+          snyk monitor --org=${SNYK_ORG_ID} --all-projects \
             ${SNYK_GROUP_OPTS} ${SNYK_TAGS} --policy-path=$GITHUB_WORKSPACE
-    
-          snyk test --command=venv/bin/python --org=${SNYK_ORG_ID} --file=requirements.txt \
+
+          snyk test --org=${SNYK_ORG_ID} --all-projects \
             ${SNYK_SEVERITY_THRESHOLD} --policy-path=$GITHUB_WORKSPACE  \
-            || echo "SNYK_TEST_PASSED=false" >> $GITHUB_ENV
+            || echo "SNYK_TEST_PASSED=false" >> $GITHUB_ENV                  
         done

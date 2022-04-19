@@ -1,12 +1,12 @@
 name: Snyk javascript scan
 description: Snyk javascript scan
 inputs:
-   python-version:
+   javascript-version:
      required: true
-     description: "python version"
+     description: "javascript version"
    directories:
      required: true
-     description: "directories of python modules"
+     description: "directories of javascript modules"
    SNYK_TOKEN:
      required: true
      description: "SNYK_TOKEN"
@@ -17,12 +17,12 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Set up python
-      uses: actions/setup-python@v2
+    - name: Set up javascript
+      uses: actions/setup-node@v2
       with:
-        python-version: ${{ inputs.python-version }}
+        javascript-version: ${{ inputs.javascript-version }}
     
-    - name: Scan python projects 
+    - name: Scan javascript projects 
       shell: bash
       env:
         SNYK_TOKEN: ${{ inputs.SNYK_TOKEN }}
@@ -32,14 +32,11 @@ runs:
         dirs=$(echo $dirs | tr ", " "\n")
 
         for d in $dirs; do
-          cd $GITHUB_WORKSPACE/$d
-          python3 -m venv venv
-          source venv/bin/activate
-          pip install -r requirements.txt
-          snyk monitor --command=venv/bin/python --org=${SNYK_ORG_ID} --file=requirements.txt \
+          npm install
+          snyk monitor --org=${SNYK_ORG_ID} --file=package.json \
             ${SNYK_GROUP_OPTS} ${SNYK_TAGS} --policy-path=$GITHUB_WORKSPACE
     
-          snyk test --command=venv/bin/python --org=${SNYK_ORG_ID} --file=requirements.txt \
+          snyk test --org=${SNYK_ORG_ID} --file=package.json \
             ${SNYK_SEVERITY_THRESHOLD} --policy-path=$GITHUB_WORKSPACE  \
             || echo "SNYK_TEST_PASSED=false" >> $GITHUB_ENV
         done

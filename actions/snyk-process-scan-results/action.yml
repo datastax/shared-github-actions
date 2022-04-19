@@ -2,16 +2,23 @@ name: Snyk process scan result
 description: construct snyk scan result message and comment on PR
 
 inputs:
-   gh_repo_token:
-     required: true
-     description: "github token used for add comment for PR"
+  gh_repo_token:
+    required: true
+    description: "github token used for add comment for PR"
+  snyk_report_detail_link:     
+    required: false
+    description: "some project like zoomed-in the snyk report url"
+  pr_positive_comment_skip:     
+    required: false
+    description: "some project don't like comment on positive scan"
 
 runs:
   using: "composite"
   steps:
     - name: Construct snyk scan comments
+      shell: bash    
       run : |
-        snyk_url="https://app.snyk.io/org/riptano/projects"
+        snyk_url="https://app.snyk.io/org/riptano/projects/${{ input.snyk_report_detail_link }}"
         snyk_site="Please see scan report at: <a href=\'${snyk_url}\'>${snyk_url}</a>"
         good_msg="✅ snyk scan did not find issues with severity level <b><i>${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}</i></b> or higher. $snyk_site"
         bad_msg="🚫 snyk scan found issues with severity level <b><i>${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}</i></b> or higher! $snyk_site"
@@ -21,11 +28,10 @@ runs:
         else
           echo "SNYK_SCAN_COMMENT=$bad_msg" >> $GITHUB_ENV 
         fi
-      shell: bash    
 
     - name: Set pull request comment
       uses: actions/github-script@v6
-      if: github.event_name == 'pull_request'
+      if: (github.event_name == 'pull_request') && ( input.pr_positive_comment_skip != 'skip' || env.SNYK_TEST_PASSED == 'false' ) 
       with:
         github-token: ${{ inputs.gh_repo_token }}
         script: |
@@ -37,9 +43,9 @@ runs:
           })
 
     - name: Decision for the snyk an result, (PR gating if triggered for a PR)
+      shell: bash       
       run: |
         echo "$SNYK_SCAN_COMMENT" 
         if [[ "$SNYK_TEST_PASSED" != 'true' ]]; then
           exit 1 
         fi
-      shell: bash       
