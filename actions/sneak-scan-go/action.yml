@@ -1,0 +1,51 @@
+name: Snyk go scan
+description: Snyk go scan
+inputs:
+  go-version:
+    required: true
+    description: "go version"
+  directories:
+    required: true
+    description: "directories of go modules"
+  SNYK_TOKEN:
+    required: true
+    description: "SNYK_TOKEN"
+  SNYK_ORG_ID:
+    required: true
+    description: "SNYK_ORG_ID"
+  serivce_gh_token:
+    required: false
+    description: "gh token used to read private git repo"
+   
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ inputs.go-version }}
+    
+    - name: Scan golang projects 
+      shell: bash
+      env:
+        SNYK_TOKEN: ${{ inputs.SNYK_TOKEN }}
+        SNYK_ORG_ID: ${{ inputs.SNYK_ORG_ID }}
+        SVC_GH_TOKEN: ${{ inputs.serivce_gh_token }}
+      run: |
+        dirs="${{ inputs.directories }}"
+        dirs=$(echo $dirs | tr ", " "\n")
+
+        [[ -n "$SVC_GH_TOKEN" ]] && \ 
+          git config --global url."https://${SVC_GH_TOKEN}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+        
+        for d in $dirs; do
+          cd $GITHUB_WORKSPACE/$d
+            go list  -deps ./...
+            snyk monitor --org=${SNYK_ORG_ID} --file=go.mod \
+              ${SNYK_GROUP_OPTS} ${SNYK_TAGS} --policy-path=$GITHUB_WORKSPACE
+
+            snyk test --org=${SNYK_ORG_ID} --file=go.mod \
+              ${SNYK_SEVERITY_THRESHOLD} --policy-path=$GITHUB_WORKSPACE  \
+              || echo "SNYK_TEST_PASSED=false" >> $GITHUB_ENV
+        done
