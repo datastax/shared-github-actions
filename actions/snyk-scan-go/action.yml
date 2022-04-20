@@ -33,9 +33,10 @@ runs:
         SNYK_ORG_ID: ${{ inputs.SNYK_ORG_ID }}
         SVC_GH_TOKEN: ${{ inputs.serivce_gh_token }}
       run: |
-        [[ -n "$SVC_GH_TOKEN" ]] && \ 
+        if [[ -n "$SVC_GH_TOKEN" ]]; then
           git config --global url."https://${SVC_GH_TOKEN}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
-
+        fi
+        
         dirs="${{ inputs.directories }}"
         dirs=$(echo $dirs | tr ", " "\n")
         
