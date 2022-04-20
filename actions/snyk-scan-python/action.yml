@@ -1,18 +1,21 @@
 name: Snyk javascript scan
 description: Snyk javascript scan
 inputs:
-   python-version:
-     required: true
-     description: "python version"
-   directories:
-     required: true
-     description: "directories of python modules"
-   SNYK_TOKEN:
-     required: true
-     description: "SNYK_TOKEN"
-   SNYK_ORG_ID:
-     required: true
-     description: "SNYK_ORG_ID"
+  python-version:
+    required: true
+    description: "python version"
+  directories:
+    required: true
+    description: "directories of python modules"
+  SNYK_TOKEN:
+    required: true
+    description: "SNYK_TOKEN"
+  SNYK_ORG_ID:
+    required: true
+    description: "SNYK_ORG_ID"
+  extra-snyk-options:
+    required: false
+    description: "extra snyk option that pass to snyk"
 
 runs:
   using: "composite"
@@ -36,10 +39,10 @@ runs:
           python3 -m venv venv
           source venv/bin/activate
           pip install -r requirements.txt
-          snyk monitor --command=venv/bin/python --org=${SNYK_ORG_ID} --file=requirements.txt \
+          snyk monitor --command=venv/bin/python --org=${SNYK_ORG_ID} --file=requirements.txt ${{ inputs.extra-snyk-options }} \
             ${SNYK_GROUP_OPTS} ${SNYK_TAGS} --policy-path=$GITHUB_WORKSPACE
     
-          snyk test --command=venv/bin/python --org=${SNYK_ORG_ID} --file=requirements.txt \
+          snyk test --command=venv/bin/python --org=${SNYK_ORG_ID} --file=requirements.txt ${{ inputs.extra-snyk-options }} \
             ${SNYK_SEVERITY_THRESHOLD} --policy-path=$GITHUB_WORKSPACE  \
             || echo "SNYK_TEST_PASSED=false" >> $GITHUB_ENV
         done

@@ -1,18 +1,21 @@
 name: Snyk node scan
 description: Snyk node scan
 inputs:
-   node-version:
-     required: true
-     description: "node version"
-   directories:
-     required: true
-     description: "directories of node modules"
-   SNYK_TOKEN:
-     required: true
-     description: "SNYK_TOKEN"
-   SNYK_ORG_ID:
-     required: true
-     description: "SNYK_ORG_ID"
+  node-version:
+    required: true
+    description: "node version"
+  directories:
+    required: true
+    description: "directories of node modules"
+  SNYK_TOKEN:
+    required: true
+    description: "SNYK_TOKEN"
+  SNYK_ORG_ID:
+    required: true
+    description: "SNYK_ORG_ID"
+  extra-snyk-options:
+    required: false
+    description: "extra snyk option that pass to snyk"
 
 runs:
   using: "composite"
@@ -34,10 +37,10 @@ runs:
         for d in $dirs; do
           cd $GITHUB_WORKSPACE/$d
           npm install
-          snyk monitor --org=${SNYK_ORG_ID} --file=package.json \
+          snyk monitor --org=${SNYK_ORG_ID} --file=package.json ${{ inputs.extra-snyk-options }} \
             ${SNYK_GROUP_OPTS} ${SNYK_TAGS} --policy-path=$GITHUB_WORKSPACE
     
-          snyk test --org=${SNYK_ORG_ID} --file=package.json \
+          snyk test --org=${SNYK_ORG_ID} --file=package.json ${{ inputs.extra-snyk-options }} \
             ${SNYK_SEVERITY_THRESHOLD} --policy-path=$GITHUB_WORKSPACE  \
             || echo "SNYK_TEST_PASSED=false" >> $GITHUB_ENV
         done

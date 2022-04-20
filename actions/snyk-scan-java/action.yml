@@ -1,19 +1,22 @@
 name: Snyk java scan
 description: Snyk java scan (including simple maven and gradle)
 inputs:
-   java-version:
-     required: true
-     description: "java version"
-   directories:
-     required: true
-     description: "directories of maven modules"
-   SNYK_TOKEN:
-     required: true
-     description: "SNYK_TOKEN"
-   SNYK_ORG_ID:
-     required: true
-     description: "SNYK_ORG_ID"
-
+  java-version:
+    required: true
+    description: "java version"
+  directories:
+    required: true
+    description: "directories of maven modules"
+  SNYK_TOKEN:
+    required: true
+    description: "SNYK_TOKEN"
+  SNYK_ORG_ID:
+    required: true
+    description: "SNYK_ORG_ID"
+  extra-snyk-options:
+    required: false
+    description: "extra snyk option that pass to snyk"
+    
 runs:
   using: "composite"
   steps:
@@ -35,10 +38,10 @@ runs:
 
         for d in $dirs; do
           cd $GITHUB_WORKSPACE/$d
-          snyk monitor -DskipTests --org=${SNYK_ORG_ID} --all-projects \
+          snyk monitor -DskipTests --org=${SNYK_ORG_ID} --all-projects ${{ inputs.extra-snyk-options }} \
             ${SNYK_GROUP_OPTS} ${SNYK_TAGS} --policy-path=$GITHUB_WORKSPACE
 
-          snyk test -DskipTests --org=${SNYK_ORG_ID} --all-projects \
+          snyk test -DskipTests --org=${SNYK_ORG_ID} --all-projects  ${{ inputs.extra-snyk-options }}\
             ${SNYK_SEVERITY_THRESHOLD} --policy-path=$GITHUB_WORKSPACE  \
             || echo "SNYK_TEST_PASSED=false" >> $GITHUB_ENV                  
         done

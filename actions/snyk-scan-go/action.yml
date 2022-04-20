@@ -16,7 +16,9 @@ inputs:
   serivce_gh_token:
     required: false
     description: "gh token used to read private git repo"
-   
+  extra-snyk-options:
+    required: false
+    description: "extra snyk option that pass to snyk"
 
 runs:
   using: "composite"
@@ -36,17 +38,17 @@ runs:
         if [[ -n "$SVC_GH_TOKEN" ]]; then
           git config --global url."https://${SVC_GH_TOKEN}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
         fi
-        
+
         dirs="${{ inputs.directories }}"
         dirs=$(echo $dirs | tr ", " "\n")
         
         for d in $dirs; do
           cd $GITHUB_WORKSPACE/$d
             go list  -deps ./...
-            snyk monitor --org=${SNYK_ORG_ID} --file=go.mod \
+            snyk monitor --org=${SNYK_ORG_ID} --file=go.mod ${{ inputs.extra-snyk-options }} \
               ${SNYK_GROUP_OPTS} ${SNYK_TAGS} --policy-path=$GITHUB_WORKSPACE
 
-            snyk test --org=${SNYK_ORG_ID} --file=go.mod \
+            snyk test --org=${SNYK_ORG_ID} --file=go.mod ${{ inputs.extra-snyk-options }} \
               ${SNYK_SEVERITY_THRESHOLD} --policy-path=$GITHUB_WORKSPACE  \
               || echo "SNYK_TEST_PASSED=false" >> $GITHUB_ENV
         done
