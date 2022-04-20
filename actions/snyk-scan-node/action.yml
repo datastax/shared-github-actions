@@ -1,12 +1,12 @@
-name: Snyk javascript scan
-description: Snyk javascript scan
+name: Snyk node scan
+description: Snyk node scan
 inputs:
-   javascript-version:
+   node-version:
      required: true
-     description: "javascript version"
+     description: "node version"
    directories:
      required: true
-     description: "directories of javascript modules"
+     description: "directories of node modules"
    SNYK_TOKEN:
      required: true
      description: "SNYK_TOKEN"
@@ -17,12 +17,12 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Set up javascript
+    - name: Set up node
       uses: actions/setup-node@v2
       with:
-        node-version: ${{ inputs.javascript-version }}
+        node-version: ${{ inputs.node-version }}
     
-    - name: Scan javascript projects 
+    - name: Scan node projects 
       shell: bash
       env:
         SNYK_TOKEN: ${{ inputs.SNYK_TOKEN }}
