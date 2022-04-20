@@ -35,10 +35,10 @@ runs:
 
         for d in $dirs; do
           cd $GITHUB_WORKSPACE/$d
-          snyk monitor --org=${SNYK_ORG_ID} --all-projects \
+          snyk monitor -DskipTests --org=${SNYK_ORG_ID} --all-projects \
             ${SNYK_GROUP_OPTS} ${SNYK_TAGS} --policy-path=$GITHUB_WORKSPACE
 
-          snyk test --org=${SNYK_ORG_ID} --all-projects \
+          snyk test -DskipTests --org=${SNYK_ORG_ID} --all-projects \
             ${SNYK_SEVERITY_THRESHOLD} --policy-path=$GITHUB_WORKSPACE  \
             || echo "SNYK_TEST_PASSED=false" >> $GITHUB_ENV                  
         done
