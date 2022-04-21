@@ -79,6 +79,7 @@ jobs:
           # remove the selected snyk project ß
           while read -r id; do
             curl -i -X DELETE -H "Authorization:${{ secrets.snyk_token }}" \
-              "https://snyk.io/api/v1/org/${{ secrets.snyk_org_id }}/project/$id"
+              "https://snyk.io/api/v1/org/${{ secrets.snyk_org_id }}/project/$id" \
+              || echo "warning: Failed to delete snyk project id = [$id], skipping... "
             echo "deleted snyk project id = [$id]"
           done <<< "$ids"                 
