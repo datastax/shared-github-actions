@@ -39,7 +39,7 @@ runs:
         for d in $dirs; do
           cd $GITHUB_WORKSPACE/$d
           snyk monitor -DskipTests --org=${SNYK_ORG_ID} --all-projects ${{ inputs.extra-snyk-options }} \
-            ${SNYK_GROUP_OPTS} ${SNYK_TAGS} --policy-path=$GITHUB_WORKSPACE
+            ${SNYK_GROUP_OPTS} ${SNYK_TAGS} --policy-path=$GITHUB_WORKSPACE  --debug
 
           snyk test -DskipTests --org=${SNYK_ORG_ID} --all-projects  ${{ inputs.extra-snyk-options }}\
             ${SNYK_SEVERITY_THRESHOLD} --policy-path=$GITHUB_WORKSPACE  \
