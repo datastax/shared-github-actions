@@ -2,7 +2,7 @@ name: Snyk java scan
 description: Snyk java scan (including simple maven and gradle)
 inputs:
   java-version:
-    required: true
+    required: false
     description: "java version"
   directories:
     required: true
@@ -21,6 +21,7 @@ runs:
   using: "composite"
   steps:
     - name: Set up java
+      if: (inputs.java-version != '') 
       uses: actions/setup-java@v2
       with:
         java-version: ${{ inputs.java-version }}
