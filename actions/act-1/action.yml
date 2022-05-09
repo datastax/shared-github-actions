@@ -18,9 +18,9 @@ runs:
         echo "in set env 1"
         echo "e1 is [$e1]"
         echo "MEMEME1=${{ inputs.a1_input_1 }}" >> $GITHUB_ENV 
-        if [[ "${{ a1_input_2 }}" != "" ]]; then
+        if [[ "${{ a1_input_2.a1_input_2 }}" != "" ]]; then
           echo '\$ {{ a1_input_2 }}" != ""'
         fi
-          echo '[${{ a1_input_2 }}]'
+        echo '[${{ a1_input_2.a1_input_2 }}]'
         
       shell: bash
