@@ -1,0 +1,101 @@
+name: ⛏️ KubeLinter lint
+
+
+on: 
+  workflow_call:
+    inputs:
+      directories:
+        type: string  
+        required: true
+      pr_positive_comment_skip:
+        type: string  
+        required: false
+    secrets:
+      gh_svc_token:
+        required: true
+      gh_repo_token:        
+        required: true
+
+jobs:
+  do_kubelinter_lint:
+    env:
+        report_file: _report_.txt
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+
+      - name: Get the common kubelinter config file
+        run: |
+          echo  "KUBE_LINT_PASSED=true" >> $GITHUB_ENV
+          curl -H 'Authorization: token ${{ secrets.gh_svc_token }}' -H \
+            'Accept: application/vnd.github.v3.raw' -O -L \
+            https://raw.githubusercontent.com/riptano/shared-github-actions/kubelinter/kube-linter-config.yaml  
+          cat  kube-linter-config.yaml       
+      
+      - name: Download latest kube-linter
+        run: |
+          LOCATION=$(curl -s https://api.github.com/repos/stackrox/kube-linter/releases/latest \
+          | grep "tag_name" \
+          | awk '{print "https://github.com/stackrox/kube-linter/releases/download/" substr($2, 2, length($2)-3) "/kube-linter-linux.tar.gz"}')
+          curl -L -o kube-linter-linux.tar.gz $LOCATION
+          tar -xf kube-linter-linux.tar.gz -C "${GITHUB_WORKSPACE}/"
+
+      - name: Run KubeLinter lint 
+        run: |
+          :> $report_file
+
+          dirs="${{ inputs.directories }}"
+          dirs=$(echo $dirs | tr ", " "\n")
+          for d in $dirs ; do    
+            echo "d=[$d]"      
+            scan_ok='true'
+            ${GITHUB_WORKSPACE}/kube-linter lint $d --config=kube-linter-config.yaml || scan_ok='false'; echo  "KUBE_LINT_PASSED=false" >> $GITHUB_ENV 
+
+            if [[ $scan_ok == 'false' ]]; then
+              t1=_temp1
+              t2=_temp2
+
+              dname="[$d]"
+              if [[ $d == '.' || $d == ${GITHUB_WORKSPACE} ]]; then
+                dname="[$GITHUB_REPOSITORY]"
+              fi
+              echo "👿 KubeLinter on ${dname} failed. Please check the github action output for details" >> $report_file
+              ${GITHUB_WORKSPACE}/kube-linter lint $d --config=kube-linter-config.yaml --format=json > $t1 || echo  "_ok_" 
+              cat $t1 | jq -r '.Reports[] | "\(.Check)"' > $t2
+              sort $t2 | uniq -c  | sort -r >> $report_file
+            fi
+          done
+
+      - name: Prepare for the executive summary to be put in the PR
+        if: (github.event_name == 'pull_request') && (env.KUBE_LINT_PASSED == 'false' ) 
+        run: |
+          if [[ $KUBE_LINT_PASSED == 'true' ]]; then
+            echo "PR_COMMENTS=✅ KubeLinter passed." >>  $GITHUB_ENV 
+          else
+            echo "PR_COMMENTS<<EOF" >> $GITHUB_ENV 
+            while IFC= read -r line; do 
+              echo "$line" >>  $GITHUB_ENV 
+            done < $report_file
+            echo "EOF" >> $GITHUB_ENV
+          fi
+
+      - name: Set pull request comment
+        uses: actions/github-script@v6
+        if: (github.event_name == 'pull_request') && ( inputs.pr_positive_comment_skip != 'skip' || env.SNYK_TEST_PASSED == 'false' ) 
+        with:
+          github-token: ${{ secrets.gh_repo_token }}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `${{ env.PR_COMMENTS }}`
+            })
+
+      - name: Decision for the kube lint result, (PR gating if triggered for a PR)
+        run: |
+          echo "$PR_COMMENTS" 
+          if [[ "$KUBE_LINT_PASSED" != 'true' ]]; then
+            exit 1 
+          fi
