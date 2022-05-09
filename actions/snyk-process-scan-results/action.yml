@@ -18,7 +18,11 @@ runs:
     - name: Construct snyk scan comments
       shell: bash    
       run : |
-        snyk_url="https://app.snyk.io/org/riptano/projects/${{ inputs.snyk_report_detail_link }}"
+        append="s"
+        if [[ "${{ inputs.snyk_report_detail_link }}" != "" ]]; then
+          append="/${{ inputs.snyk_report_detail_link }}"
+        fi
+        snyk_url="https://app.snyk.io/org/riptano/project${append}"
         snyk_site="Please see scan report at: <a href=\'${snyk_url}\'>${snyk_url}</a>"
         good_msg="✅ snyk scan did not find issues with severity level <b><i>${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}</i></b> or higher. $snyk_site"
         bad_msg="🚫 snyk scan found issues with severity level <b><i>${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}</i></b> or higher! $snyk_site"
