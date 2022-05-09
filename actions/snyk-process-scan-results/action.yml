@@ -21,7 +21,7 @@ runs:
         snyk_url="https://app.snyk.io/org/riptano/projects/${{ inputs.snyk_report_detail_link }}"
         snyk_site="Please see scan report at: <a href=\'${snyk_url}\'>${snyk_url}</a>"
         good_msg="✅ snyk scan did not find issues with severity level <b><i>${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}</i></b> or higher. $snyk_site"
-        bad_msg="🚫 snyk scan found issues with severity level <b><i>${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}</i></b> or higher! $snyk_site"
+        bad_msg="🚫 snyk scan found issues with severity level <b><i>${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}</i></b> or higher! $snyk_site.<p/> See snyk help on: https://datastax.jira.com/wiki/spaces/CE/pages/3333128196/Snyk+-+best+practice+on+Datastax+code+repositories#FAQ"
         
         if [[ $SNYK_TEST_PASSED == 'true' ]]; then           
           echo "SNYK_SCAN_COMMENT=$good_msg" >> $GITHUB_ENV 
