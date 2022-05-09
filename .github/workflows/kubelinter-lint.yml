@@ -68,7 +68,7 @@ jobs:
           done
 
       - name: Prepare for the executive summary to be put in the PR
-        if: (github.event_name == 'pull_request') && (env.KUBE_LINT_PASSED == 'false' ) 
+        if: github.event_name == 'pull_request'
         run: |
           if [[ $KUBE_LINT_PASSED == 'true' ]]; then
             echo "PR_COMMENTS=✅ KubeLinter passed." >>  $GITHUB_ENV 
@@ -82,7 +82,7 @@ jobs:
 
       - name: Set pull request comment
         uses: actions/github-script@v6
-        if: (github.event_name == 'pull_request') && ( inputs.pr_positive_comment_skip != 'skip' || env.SNYK_TEST_PASSED == 'false' ) 
+        if: (github.event_name == 'pull_request') && ( inputs.pr_positive_comment_skip != 'skip' || env.KUBE_LINT_PASSED == 'false' ) 
         with:
           github-token: ${{ secrets.gh_repo_token }}
           script: |
