@@ -13,7 +13,7 @@ runs:
     - name: set env 1
       env:
         e1: e1_v1
-        a2: ${{ a1_input_2 }}
+        a2: ${{ inputs.a1_input_2 }}
       run: |
         echo "in set env 1"
         echo "e1 is [$e1]"
