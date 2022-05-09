@@ -23,4 +23,10 @@ runs:
         fi
         echo '[${{ inputs.a1_input_2 }}]'
         
+        append="s"
+        if [[ "${{ inputs.a1_input_2 }}" != "" ]]; then
+          append="/${{ inputs.a1_input_2 }}"
+        fi
+        snyk_url="https://app.snyk.io/org/riptano/project${append}"
+        echo "snyk_url is [$snyk_url]"
       shell: bash
