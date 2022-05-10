@@ -60,7 +60,10 @@ jobs:
               if [[ $d == '.' || $d == ${GITHUB_WORKSPACE} ]]; then
                 dname="[$GITHUB_REPOSITORY]"
               fi
-              echo "👿 KubeLinter on ${dname} failed. Please check the github action output for details" >> $report_file
+              echo "👿 KubeLinter on ${dname} failed." >> $report_file
+              echo "Please check the github action console to expand [<i>Run KubeLinter lint</i>] section for details." >> $report_file
+              echo "" >> $report_file
+              echo "-------- lint summary ---------" >> $report_file
               ${GITHUB_WORKSPACE}/kube-linter lint $d --config=kube-linter-config.yaml --format=json > $t1 || echo  "_ok_" 
               cat $t1 | jq -r '.Reports[] | "\(.Check)"' > $t2
               sort $t2 | uniq -c  | sort -r >> $report_file
