@@ -39,6 +39,10 @@ There are two types of shared GitHub Actions code used:
   - **Reusable Workflows**  
     https://github.com/riptano/cloud-ondemand/blob/master/.github/workflows/snyk-pr-cleanup.yml
 
+## Sample output of Snyk 
+Sample Git Pull Request with Snyk finding summary:    
+![PR screenshot](docs/snyk-pr-deep-url.png)  
+
 ## Sample output of KubeLinter 
 Sample Git Pull Request with KubeLinter finding summary:    
 ![PR screenshot](docs/Kube-Linter-sample.png)  
