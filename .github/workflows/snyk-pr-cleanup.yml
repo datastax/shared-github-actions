@@ -35,12 +35,16 @@ jobs:
           TAG_REPO=${TAG_REPO//./-}
           TAG_BRANCH=${TAG_BRANCH//./-}
           
+          # snyk tag limitation - replace '+' with '_'
+          TAG_REPO=${TAG_REPO//+/_}
+          TAG_BRANCH=${TAG_BRANCH//+/_}
+          
           echo "TAG_REPO = [$TAG_REPO]"        
           echo "TAG_BRANCH = [$TAG_BRANCH]"
           
           # make sure on other unsupported characters
-          if  [[ "$TAG_BRANCH" =~ [^a-zA-Z0-9_/\.\-] ]]; then
-            echo "$TAG_BRANCH contains invalid characters for synk tags - only allow alphanumerics and '/', '.',  '-', '_' "
+          if  [[ "$TAG_BRANCH" =~ [^a-zA-Z0-9_+/\.\-] ]]; then
+            echo "$TAG_BRANCH contains invalid characters for synk tags - only allow alphanumerics and '/', '.', '-', '+', '_' "
             exit 2
           fi 
 
@@ -76,7 +80,7 @@ jobs:
                   -d "@${SNYK_FILTER_FILE}" https://snyk.io/api/v1/org/${{ secrets.snyk_org_id }}/projects  \
                 | jq -r '.projects[].id' )
 
-          # remove the selected snyk project ß
+          # remove the selected snyk project
           while read -r id; do
             curl -i -X DELETE -H "Authorization:${{ secrets.snyk_token }}" \
               "https://snyk.io/api/v1/org/${{ secrets.snyk_org_id }}/project/$id" \

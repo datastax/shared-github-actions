@@ -40,7 +40,4 @@ runs:
           snyk monitor --org=${SNYK_ORG_ID} --file=package.json ${{ inputs.extra-snyk-options }} \
             ${SNYK_GROUP_OPTS} ${SNYK_TAGS} --policy-path=$GITHUB_WORKSPACE
     
-          snyk test --org=${SNYK_ORG_ID} --file=package.json ${{ inputs.extra-snyk-options }} \
-            ${SNYK_SEVERITY_THRESHOLD} --policy-path=$GITHUB_WORKSPACE  \
-            || echo "SNYK_TEST_PASSED=false" >> $GITHUB_ENV
         done

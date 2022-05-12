@@ -42,7 +42,4 @@ runs:
           snyk monitor -DskipTests --org=${SNYK_ORG_ID} --all-projects ${{ inputs.extra-snyk-options }} \
             ${SNYK_GROUP_OPTS} ${SNYK_TAGS} --policy-path=$GITHUB_WORKSPACE  --debug
 
-          snyk test -DskipTests --org=${SNYK_ORG_ID} --all-projects  ${{ inputs.extra-snyk-options }}\
-            ${SNYK_SEVERITY_THRESHOLD} --policy-path=$GITHUB_WORKSPACE  \
-            || echo "SNYK_TEST_PASSED=false" >> $GITHUB_ENV                  
         done

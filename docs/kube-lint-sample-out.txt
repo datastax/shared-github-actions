@@ -1,0 +1,15 @@
+$> kube-linter lint --config=c.yml .
+
+KubeLinter 0.2.6
+
+caas/additional-charts/cmd-processor/templates/deployment.yaml: (object: <no namespace>/cmd-processor apps/v1, Kind=Deployment) object has no strategy type but must match regex ^(RollingUpdate|Rolling)$ (check: no-rolling-update-strategy, remediation: Use a rolling update strategy to avoid service disruption during an update. A rolling update strategy allows for pods to be systematicaly replaced in a controlled fashion to ensure no service disruption.)
+...
+
+caas/additional-charts/serverless-cndb-operator/templates/deployment.yaml: (object: <no namespace>/cndb-operator apps/v1, Kind=Deployment) container "manager" does not specify a liveness probe (check: no-liveness-probe, remediation: Specify a liveness probe in your container. Refer to https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/ for details.)
+
+....
+provisioner/operator-chart/templates/deployment.yaml: (object: <no namespace>/astra-operator apps/v1, Kind=Deployment) container "manager" does not specify a readiness probe (check: no-readiness-probe, remediation: Specify a readiness probe in your container. Refer to https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/ for details.)
+
+provisioner/operator-chart/templates/deployment.yaml: (object: <no namespace>/astra-operator apps/v1, Kind=Deployment) object has no strategy type but must match regex ^(RollingUpdate|Rolling)$ (check: no-rolling-update-strategy, remediation: Use a rolling update strategy to avoid service disruption during an update. A rolling update strategy allows for pods to be systematicaly replaced in a controlled fashion to ensure no service disruption.)
+
+Error: found 55 lint errors 

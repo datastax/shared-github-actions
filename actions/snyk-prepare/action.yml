@@ -25,17 +25,24 @@ runs:
         TAG_REPO=${TAG_REPO//./-}
         TAG_BRANCH=${TAG_BRANCH//./-}
         
+        # snyk tag limitation - replace '+' with '_'
+        TAG_REPO=${TAG_REPO//+/_}
+        TAG_BRANCH=${TAG_BRANCH//+/_}
+        
         echo "TAG_REPO = [$TAG_REPO]"        
         echo "TAG_BRANCH = [$TAG_BRANCH]"
         
         # make sure on other unsupported characters
-        if  [[ "$TAG_BRANCH" =~ [^a-zA-Z0-9_/\.\-] ]]; then
-          echo "$TAG_BRANCH contains invalid characters for synk tags - only allow alphanumerics and '/', '.',  '-', '_' "
+        if  [[ "$TAG_BRANCH" =~ [^a-zA-Z0-9_+/\.\-] ]]; then
+          echo "$TAG_BRANCH contains invalid characters for synk tags - only allow alphanumerics and '/', '.', '-', '+', '_' "
           exit 2
         fi 
 
         SNYK_GROUP_OPTS="--remote-repo-url=${GITHUB_REPOSITORY} --target-reference=${REAL_BRANCH}"
         SNYK_TAGS="--tags=repo=${TAG_REPO},branch=${TAG_BRANCH}"
+
+        echo "TAG_REPO=${TAG_REPO}" >> $GITHUB_ENV
+        echo "TAG_BRANCH=${TAG_BRANCH}" >> $GITHUB_ENV
         echo "SNYK_GROUP_OPTS=${SNYK_GROUP_OPTS}" >> $GITHUB_ENV
         echo "SNYK_TAGS=${SNYK_TAGS}" >> $GITHUB_ENV
         echo "SNYK_SEVERITY_THRESHOLD=--severity-threshold=${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}" >> $GITHUB_ENV

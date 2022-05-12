@@ -1,36 +1,195 @@
 name: Snyk process scan result
-description: construct snyk scan result message and comment on PR
+description: construct snyk scan result message and comment on PR with project deep link and issue names. Failed the job is scan not satisfied
 
 inputs:
+  SNYK_TOKEN:
+    required: true
+    description: "SNYK_TOKEN"
+  SNYK_ORG_ID:
+    required: true
+    description: "SNYK_ORG_ID"
   gh_repo_token:
     required: true
     description: "github token used for add comment for PR"
-  snyk_report_detail_link:     
-    required: false
-    description: "some project like zoomed-in the snyk report url"
   pr_positive_comment_skip:     
     required: false
     description: "some project don't like comment on positive scan"
-
+  orgSlug: 
+    required: false
+    default: "riptano"
+    description: "snyk org slug string used for the url in UI"
 runs:
-  using: "composite"
+  using: "composite"  
   steps:
-    - name: Construct snyk scan comments
+    - name: set up some working file names across diff steps 
+      shell: bash 
+      run: |
+        # store some working file names different steps across this action 
+        # since composite gh action doesn't support env over step level
+        echo "SNYK_FILTER_FILE=__synk_filter.json" >> $GITHUB_ENV
+        echo "SNYK_ISSUE_FILTER_FILE=__synk_issue_filter.json" >> $GITHUB_ENV
+        echo "FAILED_PROJECT_ID_WITH_ISSUE_FILE=__synk_project_issue.txt" >> $GITHUB_ENV
+
+    - name: use the repo and branch name to create filter file for the snyk projects
+      shell: bash 
+      run: |
+        cat $GITHUB_ENV
+
+        # create json filter file used to retireved pertaining synk projects
+        cat << EOF > $SNYK_FILTER_FILE
+        {
+          "filters": {
+            "tags": {
+              "includes": [
+                {
+                  "key": "repo",
+                  "value": "${TAG_REPO}"
+                },
+                {
+                  "key": "branch",
+                  "value": "${TAG_BRANCH}"
+                }
+              ]
+            }
+          }
+        }
+        EOF
+
+        cat ${SNYK_FILTER_FILE}
+
+    - name: setup critial issue filter file 
       shell: bash    
       run : |
-        append="s"
-        if [[ "${{ inputs.snyk_report_detail_link }}" != "" ]]; then
-          append="/${{ inputs.snyk_report_detail_link }}"
-        fi
-        echo "append is [$append]"
-        snyk_url="https://app.snyk.io/org/riptano/project${append}"
-        snyk_site="Please see scan report at: <a href=\'${snyk_url}\'>${snyk_url}</a>"
-        good_msg="✅ snyk scan did not find issues with severity level <b><i>${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}</i></b> or higher. $snyk_site"
-        bad_msg="🚫 snyk scan found issues with severity level <b><i>${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}</i></b> or higher! $snyk_site.<p/> See snyk help on: https://datastax.jira.com/wiki/spaces/CE/pages/3333128196/Snyk+-+best+practice+on+Datastax+code+repositories#FAQ"
+        # create json filter file used to retireved violating issues for a snyk project
+        # depends on the threshold serverity level, the filter will contain the right content
         
-        if [[ $SNYK_TEST_PASSED == 'true' ]]; then           
+        # threshold severity level critial is the base
+        cat << EOF > $SNYK_ISSUE_FILTER_FILE
+        {
+          "includeDescription": false,
+          "includeIntroducedThrough": false,
+          "filters": {
+            "severities": [
+              "critical"
+            ],
+            "ignored": false
+          }
+        }
+        EOF
+
+        # threshold severity level high is the next, append high
+        if [[ ${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}  == high ]]; then
+          tmpf=$(mktemp)
+          jq  '.filters.severities? += ["high"]' $SNYK_ISSUE_FILTER_FILE > $tmpf &&  mv $tmpf $SNYK_ISSUE_FILTER_FILE
+        fi  
+        
+        # threshold severity level medium is the next, append high and medium
+        if [[ ${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}  == medium ]]; then
+          tmpf2=$(mktemp)
+          jq  '.filters.severities? += ["high", "medium"]' $SNYK_ISSUE_FILTER_FILE > $tmpf2 &&  mv $tmpf2 $SNYK_ISSUE_FILTER_FILE
+        fi  
+
+        # threshold severity level low there is no need for severity filter any more
+        if [[ ${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}  == low ]]; then
+          tmpf2=$(mktemp)
+          jq  'del(.filters.severities)' $SNYK_ISSUE_FILTER_FILE > $tmpf2 &&  mv $tmpf2 $SNYK_ISSUE_FILTER_FILE
+        fi  
+
+        cat ${SNYK_ISSUE_FILTER_FILE}
+
+    - name: query snyk server site to collect projects contains serverity issues equal or higher than threshold level and not in the ignored list, store results in working file to be used by later steps
+      shell: bash    
+      run : |
+          # retrieve all snyk project ids associated with this repo and the guarded branch
+          prIds=$(curl -q -X POST -H "Authorization:${{ inputs.SNYK_TOKEN }}" -H "Content-Type:application/json" \
+                  -d "@${SNYK_FILTER_FILE}" https://snyk.io/api/v1/org/${{ inputs.SNYK_ORG_ID }}/projects   \
+                | jq -r '.projects[].id' ) 
+          
+          echo "prIds: $prIds"
+
+          # create the empty working file 
+          :> $FAILED_PROJECT_ID_WITH_ISSUE_FILE
+
+          # collect projects that have issues (severity equal or higher than threshold and not be ignored)
+          # loop through all the snyk project ids
+          while read -r prId; do
+            
+            echo "prId: [$prId]" 
+            
+            # grab all issue ids using the SNYK_ISSUE_FILTER_FILE
+            issues=$(curl -q -X POST -H "Authorization:${{ inputs.SNYK_TOKEN }}" -H "Content-Type:application/json" \
+              -d "@${SNYK_ISSUE_FILTER_FILE}" https://snyk.io/api/v1/org/${{ inputs.SNYK_ORG_ID }}/project/$prId/aggregated-issues \
+              | jq -r '.issues[].id' )
+            
+            echo "issues: $issues"
+
+            # check if there is any issues
+            if [[ ${#issues} != '0' ]]; then
+              
+              # store first item is the project id, with "," as seperator
+              item="$prId,"
+              
+              # loop through these issues and append to the same line, use space " " as seperator, append to the same line
+              while IFS= read -r line; do
+                item+=" $line"
+              done <<< "$issues"  
+
+              echo $item >> $FAILED_PROJECT_ID_WITH_ISSUE_FILE
+            fi  
+          done <<< "$prIds"
+          
+          # the above will result in the file looks like this:
+          # cat $FAILED_PROJECT_ID_WITH_ISSUE_FILE
+          #
+          #  f392393f-72dd-444a-8c69-19149f6a3a25, snyk:lic:pip:chardet:LGPL-2.1 snyk:lic:pip:certifi:MPL-2.0
+          #  f508c461-b425-4961-9ff2-f84ff294eb17, SNYK-PYTHON-URLLIB3-1533435 snyk:lic:pip:chardet:LGPL-2.1 
+          #
+
+          echo "file $FAILED_PROJECT_ID_WITH_ISSUE_FILE content:"
+          cat $FAILED_PROJECT_ID_WITH_ISSUE_FILE
+
+    - name: Construct snyk scan comments
+      shell: bash 
+      run : |
+        # construct some base strings
+        snyk_url="https://app.snyk.io/org/${{ inputs.orgSlug }}/project"
+        snyk_site="Please see scan report at: <a href=\'${snyk_url}\'>${snyk_url}s</a>"
+        good_msg="✅ snyk scan did not find issues with severity level <b><i>${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}</i></b> or higher. $snyk_site <br> See snyk help on: https://datastax.jira.com/wiki/spaces/CE/pages/3333128196/Snyk+-+best+practice+on+Datastax+code+repositories#FAQ"
+        bad_msg="🚫 snyk scan found issues with severity level <b><i>${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}</i></b> or higher!"
+        
+        # check emptyness of the file FAILED_PROJECT_ID_WITH_ISSUE_FILE
+        if [[ ! -s $FAILED_PROJECT_ID_WITH_ISSUE_FILE ]]; then           
           echo "SNYK_SCAN_COMMENT=$good_msg" >> $GITHUB_ENV 
         else
+          
+          # file FAILED_PROJECT_ID_WITH_ISSUE_FILE is not empty, start to construct PR contain snyk UI deep links
+          bad_msg+="<br>Snyk findings:<br>-------------------------------------------------------<br> "
+          while IFS= read -r line; do
+            
+            # grab project id
+            prId=$(echo $line | cut -d "," -f 1)
+            
+            # grab issue ids
+            issueIds=$(echo $line | cut -d "," -f 2)
+
+            # add deep link for synk project (module)
+            bad_msg+="<br>module: ${snyk_url}/$prId <br>issues: "
+            
+            # loop through issues id strings seperated by spaces
+            for issueId in $issueIds ; do 
+              bad_msg+=" $issueId,"
+            done 
+
+            # remove the last "," 
+            bad_msg=${bad_msg::-1}
+            bad_msg+="<br>"
+          done < "$FAILED_PROJECT_ID_WITH_ISSUE_FILE"
+
+          # add extra help at the end
+          bad_msg+="<br>-------------------------------------------------------"
+          bad_msg+="<br>More snyk help at: https://datastax.jira.com/wiki/spaces/CE/pages/3333128196/Snyk+-+best+practice+on+Datastax+code+repositories#FAQ"
+
+          # store to the right varible SNYK_SCAN_COMMENT
           echo "SNYK_SCAN_COMMENT=$bad_msg" >> $GITHUB_ENV 
         fi
 
@@ -47,10 +206,12 @@ runs:
             body: '${{ env.SNYK_SCAN_COMMENT }}'
           })
 
-    - name: Decision for the snyk an result, (PR gating if triggered for a PR)
+    - name: Decision for the snyk scan result (non empty file FAILED_PROJECT_ID_WITH_ISSUE_FILE means scan found issues)
       shell: bash       
       run: |
         echo "$SNYK_SCAN_COMMENT" 
-        if [[ "$SNYK_TEST_PASSED" != 'true' ]]; then
+        
+        # failed the job if FAILED_PROJECT_ID_WITH_ISSUE_FILE is not empty
+        if [[ -s $FAILED_PROJECT_ID_WITH_ISSUE_FILE ]]; then
           exit 1 
         fi
