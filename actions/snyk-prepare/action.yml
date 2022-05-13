@@ -46,7 +46,6 @@ runs:
         echo "SNYK_GROUP_OPTS=${SNYK_GROUP_OPTS}" >> $GITHUB_ENV
         echo "SNYK_TAGS=${SNYK_TAGS}" >> $GITHUB_ENV
         echo "SNYK_SEVERITY_THRESHOLD=--severity-threshold=${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}" >> $GITHUB_ENV
-        echo "SNYK_TEST_PASSED=true" >> $GITHUB_ENV
         
         echo "GITHUB_EVENT_NAME is [$GITHUB_EVENT_NAME]"
         echo "SNYK_GROUP_OPTS is [$SNYK_GROUP_OPTS]"

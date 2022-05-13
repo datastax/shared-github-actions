@@ -30,14 +30,16 @@ jobs:
           echo  "KUBE_LINT_PASSED=true" >> $GITHUB_ENV
           curl -H 'Authorization: token ${{ secrets.gh_svc_token }}' -H \
             'Accept: application/vnd.github.v3.raw' -O -L \
-            https://raw.githubusercontent.com/riptano/shared-github-actions/kubelinter/kube-linter-config.yaml  
+            https://raw.githubusercontent.com/riptano/shared-github-actions/main/kube-linter-config.yaml  
           cat  kube-linter-config.yaml       
       
       - name: Download latest kube-linter
         run: |
-          LOCATION=$(curl -s https://api.github.com/repos/stackrox/kube-linter/releases/latest \
-          | grep "tag_name" \
-          | awk '{print "https://github.com/stackrox/kube-linter/releases/download/" substr($2, 2, length($2)-3) "/kube-linter-linux.tar.gz"}')
+          # LOCATION=$(curl -s https://api.github.com/repos/stackrox/kube-linter/releases/latest \
+          # | grep "tag_name" \
+          # | awk '{print "https://github.com/stackrox/kube-linter/archive/refs/tags/" substr($2, 2, length($2)-3) "/kube-linter-linux.tar.gz"}')
+  
+          LOCATION=https://github.com/stackrox/kube-linter/releases/download/0.2.6/kube-linter-linux.tar.gz
           curl -L -o kube-linter-linux.tar.gz $LOCATION
           tar -xf kube-linter-linux.tar.gz -C "${GITHUB_WORKSPACE}/"
 

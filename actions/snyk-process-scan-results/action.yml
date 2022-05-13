@@ -11,9 +11,6 @@ inputs:
   gh_repo_token:
     required: true
     description: "github token used for add comment for PR"
-  pr_positive_comment_skip:     
-    required: false
-    description: "some project don't like comment on positive scan"
   orgSlug: 
     required: false
     default: "riptano"
@@ -157,10 +154,15 @@ runs:
         good_msg="✅ snyk scan did not find issues with severity level <b><i>${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}</i></b> or higher. $snyk_site <br> See snyk help on: https://datastax.jira.com/wiki/spaces/CE/pages/3333128196/Snyk+-+best+practice+on+Datastax+code+repositories#FAQ"
         bad_msg="🚫 snyk scan found issues with severity level <b><i>${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}</i></b> or higher!"
         
+
         # check emptyness of the file FAILED_PROJECT_ID_WITH_ISSUE_FILE
         if [[ ! -s $FAILED_PROJECT_ID_WITH_ISSUE_FILE ]]; then           
           echo "SNYK_SCAN_COMMENT=$good_msg" >> $GITHUB_ENV 
+          echo "SNYK_TEST_PASSED=true" >> $GITHUB_ENV
+        
         else
+          echo "SNYK_TEST_PASSED=false" >> $GITHUB_ENV
+          echo "...SNYK_TEST_PASSED=false"
           
           # file FAILED_PROJECT_ID_WITH_ISSUE_FILE is not empty, start to construct PR contain snyk UI deep links
           bad_msg+="<br>Snyk findings:<br>-------------------------------------------------------<br> "
@@ -195,7 +197,7 @@ runs:
 
     - name: Set pull request comment
       uses: actions/github-script@v6
-      if: (github.event_name == 'pull_request') && ( inputs.pr_positive_comment_skip != 'skip' || env.SNYK_TEST_PASSED == 'false' ) 
+      if: (github.event_name == 'pull_request') && ( env.SNYK_TEST_PASSED == 'false' ) 
       with:
         github-token: ${{ inputs.gh_repo_token }}
         script: |
@@ -209,6 +211,7 @@ runs:
     - name: Decision for the snyk scan result (non empty file FAILED_PROJECT_ID_WITH_ISSUE_FILE means scan found issues)
       shell: bash       
       run: |
+        echo "....... SNYK_TEST_PASSED=$SNYK_TEST_PASSED .........."
         echo "$SNYK_SCAN_COMMENT" 
         
         # failed the job if FAILED_PROJECT_ID_WITH_ISSUE_FILE is not empty
