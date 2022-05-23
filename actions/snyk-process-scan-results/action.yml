@@ -179,7 +179,7 @@ runs:
             
             # loop through issues id strings seperated by spaces
             for issueId in $issueIds ; do 
-              bad_msg+=" $issueId,"
+              bad_msg+=" https://security.snyk.io/vuln/$issueId,"
             done 
 
             # remove the last "," 
