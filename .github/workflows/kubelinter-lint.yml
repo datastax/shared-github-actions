@@ -40,7 +40,7 @@ jobs:
           curl -L -o kube-linter-linux.tar.gz $LOCATION
           tar -xf kube-linter-linux.tar.gz -C "${GITHUB_WORKSPACE}/"
 
-      - name: Run KubeLinter lint 
+      - name: Run KubeLinter lint (expand this to see details)
         run: |
           :> $report_file
 
