@@ -1,0 +1,76 @@
+name: ✍️ Sign using cosign (shared)
+description: Sign the container image with cosign
+inputs:
+  COSIGN_PASSWORD:
+    required: true
+    description: "password of the cosign private key"
+  COSIGN_PRIVATE_BASE64:
+    required: true
+    description: "cosign priavte key uncoded with base64"
+  container_image_with_tag:
+    required: true
+    description: "container image with tag, e.g. 237073351946.dkr.ecr.us-east-1.amazonaws.com/datastax/astra-java:v1.0.1"
+  cosign_version:
+    required: false
+    default: "v1.9.0"
+    description: "version of cosign"
+  push_to_ecr:
+    required: true
+    default: "true"
+    description: "need to push the image to ecr, if not the called need to be already docker login to ecr"
+  AWS_ACCESS_KEY_ID:
+    required: false
+    description: "AWS access key id for push to ecr, required if need_publish_ecr is true"
+  AWS_SECRET_ACCESS_KEY:
+    required: false
+    description: "AWS secret access key for push to ecr, required if need_publish_ecr is true"
+  AWS_DEFAULT_REGION:   
+    required: false
+    default: "us-east-1"
+    description: "AWS default region"
+  
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@main
+      with:
+        cosign-release: ${{ inputs.cosign_version }}
+
+    - name: Check install!
+      shell: bash 
+      run: cosign version    
+
+    - name: login ecr and publish image
+      shell: bash  
+      if: inputs.push_to_ecr == 'true' 
+      env:
+        AWS_ACCESS_KEY_ID: ${{ inputs.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: ${{ inputs.AWS_DEFAULT_REGION }}  
+      run: |
+        set -x
+        # get the ecr register host
+        ecr_host=$(echo ${{ inputs.container_image_with_tag }} | cut -d '/' -f 1)
+        echo "ecr_host is: [$ecr_host] "
+
+        # login the aws ecr
+        aws ecr get-login-password | docker login --username AWS --password-stdin $ecr_host        
+
+        # docker push image
+        docker push ${{ inputs.container_image_with_tag }}
+
+
+    - name: sign a docker image
+      shell: bash 
+      env:
+        COSIGN_PRIVATE_BASE64: ${{ inputs.COSIGN_PRIVATE_BASE64 }}
+        COSIGN_PASSWORD: ${{ inputs.COSIGN_PASSWORD }}
+        COSIGN_KEY_FILE: _cosign_key_
+        AUX_KEY: signedby
+        AUX_VALUE: datastax
+        
+      run: |
+        echo $COSIGN_PRIVATE_BASE64 | base64 --decode > $COSIGN_KEY_FILE
+        cosign sign --key $COSIGN_KEY_FILE -a $AUX_KEY=$AUX_VALUE ${{ inputs.container_image_with_tag }}

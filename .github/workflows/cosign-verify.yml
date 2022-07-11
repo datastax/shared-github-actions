@@ -1,0 +1,43 @@
+name: ✅ verify ecr signature
+on: 
+  workflow_dispatch: 
+    inputs:
+      image_with_tag:
+        description: 'fully qualified image repo with version <image_name:tag>,e.g datastax/astra-golang:v1.6.2'
+        required: true
+
+env:
+  ECR_URL: 237073351946.dkr.ecr.us-east-1.amazonaws.com  
+  PUSHED_IMAGE: ${{ inputs.image_with_tag }}
+  AUX_KEY: signedby
+  AUX_VALUE: datastax
+  COSIGN_VERSION: v1.9.0
+
+jobs: 
+  cosign-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@main
+        with:
+          cosign-release: ${{ env.COSIGN_VERSION }}
+
+      - name: Check install!
+        run: cosign version    
+
+
+      - name: login to ecr
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DMC_CLOUD_TOOL_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DMC_CLOUD_TOOL_SEC_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'  
+        run: |
+          aws ecr get-login-password | docker login --username AWS --password-stdin $ECR_URL        
+
+      - name: verify container image cosign signature
+        env:
+          COSIGN_PUBLIC_BASE64: ${{ secrets.COSIGN_PUBLIC_BASE64}}
+          COSIGN_PUB_FILE: _cosign_pub_  
+        run: |
+          echo $COSIGN_PUBLIC_BASE64 | base64 --decode > $COSIGN_PUB_FILE
+          cosign verify --key $COSIGN_PUB_FILE -a $AUX_KEY=$AUX_VALUE $ECR_URL/$PUSHED_IMAGE
