@@ -9,6 +9,7 @@ on:
         required: true
 env:
   SNYK_TAG_MAX_LENGTH: 50
+  SNYK_GROUP_ID: bbaafe05-867d-4760-8d55-4cb21a1c8b3b
 
 jobs:
   do_snyk_project_cleanup_when_pr_closed:
@@ -51,6 +52,7 @@ jobs:
           echo "TAG_REPO=${TAG_REPO}" >> $GITHUB_ENV
           echo "TAG_BRANCH=${TAG_BRANCH}" >> $GITHUB_ENV
           echo "SNYK_FILTER_FILE=_synk_filter.json" >> $GITHUB_ENV
+          echo "SNYK_TAG_FILE=_synk_tag.json" >> $GITHUB_ENV
 
       - name: use the repo and branch name to create filter file for the snyk projects
         run: |
@@ -73,6 +75,18 @@ jobs:
           }
           EOF
 
+      - name: use branch name to create filter file for tag removal
+        run: |
+          cat << EOF > ${SNYK_TAG_FILE}
+          {
+            "key":"branch",
+            "value":"${TAG_BRANCH}",
+            "force": false
+          }
+          EOF
+          echo "_____ ${SNYK_TAG_FILE} _____"
+          cat ${SNYK_TAG_FILE}
+
       - name: delete all snyk projects associated with this repo and the guarded branch
         run: |
           # retrieve all snyk project ids associated with this repo and the guarded branch
@@ -87,3 +101,9 @@ jobs:
               || echo "warning: Failed to delete snyk project id = [$id], skipping... "
             echo "deleted snyk project id = [$id]"
           done <<< "$ids"                 
+      
+      - name: try to remove the tag asscoaited with the branch, if not used by others
+        run: |
+          curl -q -X POST -H "Authorization:${{ secrets.snyk_token }}" -H "Content-Type:application/json" \
+            https://snyk.io/api/v1/group/${{ env.SNYK_GROUP_ID }}/tags/delete  \
+            -d "@${SNYK_TAG_FILE}"
