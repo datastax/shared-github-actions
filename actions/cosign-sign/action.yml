@@ -38,7 +38,7 @@ runs:
       with:
         cosign-release: ${{ inputs.cosign_version }}
 
-    - name: Check install!
+    - name: Check install
       shell: bash 
       run: cosign version    
 
@@ -52,7 +52,7 @@ runs:
       run: |
         set -x
         # get the ecr register host
-        ecr_host=$(echo ${{ inputs.container_image_with_tag }} | cut -d '/' -f 1)
+        ecr_host=$(echo "${{ inputs.container_image_with_tag }}" | cut -d '/' -f 1)
         echo "ecr_host is: [$ecr_host] "
 
         # login the aws ecr

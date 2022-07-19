@@ -1,0 +1,48 @@
+name: ✍️ Sign list using cosign (shared)
+description: Sign the container images with cosign
+inputs:
+  COSIGN_PASSWORD:
+    required: true
+    description: "password of the cosign private key"
+  COSIGN_PRIVATE_BASE64:
+    required: true
+    description: "cosign priavte key uncoded with base64"
+  container_images:
+    required: true
+    description: "container images with tag, e.g. 237073351946.dkr.ecr.us-east-1.amazonaws.com/datastax/astra-java:v1.0.1, 237073351946.dkr.ecr.us-east-1.amazonaws.com/datastax/astra-go:v1.0.2"
+  cosign_version:
+    required: false
+    default: "v1.9.0"
+    description: "version of cosign" 
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@main
+      with:
+        cosign-release: ${{ inputs.cosign_version }}
+
+    - name: Check install
+      shell: bash 
+      run: cosign version    
+
+    - name: sign a docker image
+      shell: bash 
+      env:
+        COSIGN_PRIVATE_BASE64: ${{ inputs.COSIGN_PRIVATE_BASE64 }}
+        COSIGN_PASSWORD: ${{ inputs.COSIGN_PASSWORD }}
+        COSIGN_KEY_FILE: _cosign_key_
+        AUX_KEY: signedby
+        AUX_VALUE: datastax
+        
+      run: |
+        images=$(echo "${{ inputs.container_images }}" | tr ", " "\n")
+        echo $images
+        
+        echo $COSIGN_PRIVATE_BASE64 | base64 --decode > $COSIGN_KEY_FILE
+
+        for image in $images; do
+          echo "=== signing image [$image] ..."
+          cosign sign --key $COSIGN_KEY_FILE -a $AUX_KEY=$AUX_VALUE $image
+        done
