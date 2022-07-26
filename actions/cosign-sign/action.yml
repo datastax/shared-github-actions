@@ -15,9 +15,13 @@ inputs:
     default: "v1.9.0"
     description: "version of cosign"
   push_to_ecr:
-    required: true
+    required: false
     default: "true"
     description: "need to push the image to ecr, if not the called need to be already docker login to ecr"
+  auto_create_ecr_repo:
+    required: false
+    default: "true"
+    description: "auto create ecr repo if not exist already, only used when push_to_ecr is true"
   AWS_ACCESS_KEY_ID:
     required: false
     description: "AWS access key id for push to ecr, required if need_publish_ecr is true"
@@ -49,6 +53,7 @@ runs:
         AWS_ACCESS_KEY_ID: ${{ inputs.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
         AWS_DEFAULT_REGION: ${{ inputs.AWS_DEFAULT_REGION }}  
+        FULL_REPO_WITH_TAG: ${{ inputs.container_image_with_tag }}
       run: |
         set -x
         # get the ecr register host
@@ -58,8 +63,15 @@ runs:
         # login the aws ecr
         aws ecr get-login-password | docker login --username AWS --password-stdin $ecr_host        
 
+        if [[ 'true' == '${{ inputs.auto_create_ecr_repo }}' ]]; then
+          repoAndTag=${FULL_REPO_WITH_TAG#${ecr_host}/}
+          repo=$(echo $repoAndTag | cut -d ':' -f 1)
+          aws ecr describe-repositories --repository-names $repo \
+            || aws ecr create-repository --repository-name $repo --image-tag-mutability IMMUTABLE
+        fi
+
         # docker push image
-        docker push ${{ inputs.container_image_with_tag }}
+        docker push $FULL_REPO_WITH_TAG
 
 
     - name: sign a docker image
