@@ -1,0 +1,108 @@
+name: 💂‍♂️ guard dockerfile from statement
+
+on: 
+  workflow_call:
+    inputs:
+      repo:
+        type: string  
+        required: true
+        description: 'git repo with organization, e.g. riptano/cndb'
+      pr_number:
+        type: string  
+        required: true
+        description: 'pull request number'
+    secrets:
+      gh_repo_token:        
+        required: true
+        description: 'git repo bot token'
+
+jobs:
+  do_guard_dockerfile_from_statement:
+    env:
+        ECR_URL_PATTERN: 237073351946\.dkr\.ecr\.us-east-1\.amazonaws\.com/
+        PR_FILES: PR_FILES
+        PR_DOCKER_FILES: PR_DOCKER_FILES
+        DOCKER_FROM_LINES_FILE: docker-from-lines.txt        
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Get mod Dockerfiles for the given git pull request
+        env:
+            PAGER: cat
+            GITHUB_TOKEN: ${{ secrets.gh_repo_token }}
+        run: |
+          # retrieve the mod files in the PR
+          gh api -H "Accept: application/vnd.github+json"  /repos/${{ inputs.repo }}/pulls/${{ inputs.pr_number}}/files > $PR_FILES
+          
+          # filter out non Dockerfile
+          jq  '. | map ( select (.filename | test (".*/?Dockerfile.*"))) | map ( select (.status != "removed"))' $PR_FILES > $PR_DOCKER_FILES
+
+          
+      - name: Check any violations on the FROM statement for each modfified Dockerfile
+        run: |
+          # Dockerfile count - we have to do this because:
+          # Note the for loop directly from multple line (with \n) jq doesn't work correctly
+          dockerfile_count=$(jq '. | length ' $PR_DOCKER_FILES)
+
+          badDockerFileNameList=""
+
+          for (( i=0; i<$dockerfile_count; i++)) ; do
+            echo "------>  $i"  
+            # get the Docker File Name (dfn)
+            dfn=$(jq -r --arg i $i '.| .[$i|tonumber].filename' $PR_DOCKER_FILES)  
+            echo "dfn: $dfn"
+            
+            # get the git patch for the file
+            patch=$(jq -r --arg i $i '.| .[$i|tonumber].patch' $PR_DOCKER_FILES)
+
+            # get the add/mod FROM line (not FROM ... as ...) and store it to a temp file
+            # notice that the leading + is for github patch to say that is is either to add or update
+            rc=0
+            echo "$patch" |  grep -E "^\+\s*FROM\s+" | grep -v -E "^\+\s*FROM\s+.+\s+as\s+" > $DOCKER_FROM_LINES_FILE || rc=2
+            
+            # rc !=0 means we did not find any worthy FROM line to exam
+            cat $DOCKER_FROM_LINES_FILE
+            # skip for non FROM line then 
+            if [[ $rc != 0 ]]; then 
+              echo "... skip the unworthy docker FROM lines, continue ..."
+              continue
+            fi
+
+            # rc == 0, means that we found a worthy Dockerfile FROM line, need to take a lcoser look
+            # check against ECR_URL_PATTERN
+            echo "======check against ecr url pattern =========="
+            rc=0
+            grep -E "^\+\s*FROM\s+$ECR_URL_PATTERN"  $DOCKER_FROM_LINES_FILE || rc=3
+            if [[ $rc != 0 ]]; then
+              echo "---> found the violation docker FROM line: "
+              cat $DOCKER_FROM_LINES_FILE
+              echo "<---"
+              badDockerFileNameList="$badDockerFileNameList$dfn, "
+              continue
+            fi
+          done
+          
+          # remove the trailing " ,"
+          badDockerFileNameList=${badDockerFileNameList%", "}
+          echo "badDockerFileNameList: [$badDockerFileNameList]"
+
+          # store the findings
+          echo "badDockerFileNameList=$badDockerFileNameList" >> $GITHUB_ENV 
+
+      - name: added comments to the PR if needed
+        uses: actions/github-script@v6
+        if: ( env.badDockerFileNameList != '' ) 
+        with:
+          github-token: ${{ secrets.gh_repo_token }}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚫 Dockerfile(s): [ <b><i> ${{ env.badDockerFileNameList }}</b></i> ] contains insecure FROM statements. All docker images must be based on our secured docker registry [ <b><i>${{ env.ECR_URL_PATTERN }}</b></i> ]"'
+            })
+      - name: PR decision
+        if: env.badDockerFileNameList != '' 
+        run: |
+          echo '🚫 Dockerfile(s): ${{ env.badDockerFileNameList }} contains insecure FROM statements. All docker images must be based on our secured docker registry [ ${{ env.ECR_URL_PATTERN }} ] "'
+          exit 23
