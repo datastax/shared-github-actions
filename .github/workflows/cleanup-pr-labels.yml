@@ -1,0 +1,51 @@
+name: 🚮 cleanup inactive labels
+on:
+  pull_request:
+    branches: [feature/cleanup-pr-labels ]
+
+  workflow_dispatch: 
+    # inputs:
+    #   repo:
+    #     type: string  
+    #     required: true
+    #     description: 'git repo with organization, e.g. riptano/shared-github-actions'
+    #     default: riptano/astra-base-images
+     
+jobs: 
+  cleanup_inactive_labels:
+    runs-on: ubuntu-latest
+    env:
+      LABELS_IN_REPO_FILE: LABELS_IN_REPO_FILE
+      ACTIVE_LABELS_FILE: ACTIVE_LABELS_FILE
+      TO_BE_DELETED_LABELS: TO_BE_DELETED_LABELS
+      GITHUB_TOKEN: ${{ secrets.GB_TOKEN }}
+      # OWNER_REPO: ${{ inputs.repo }}
+      OWNER_REPO: riptano/astra-base-images
+    steps:
+      - name: get all labels in the repo
+        run: |
+          gh api -H "Accept: application/vnd.github+json" /repos/$OWNER_REPO/labels \
+            | jq -r '.[].name' | uniq > $LABELS_IN_REPO_FILE
+          echo "------ LABELS_IN_REPO_FILE -----------"
+          cat $LABELS_IN_REPO_FILE
+
+      - name: get active labels in the repo
+        run: |
+          # active labels are the labels associated with OPEN Pull Requests
+          gh api -H "Accept: application/vnd.github+json" -XGET /repos/$OWNER_REPO/pulls -f state=open \
+            | jq -r '.[].labels[].name' | uniq > $ACTIVE_LABELS_FILE
+          echo "------ ACTIVE_LABELS_FILE -----------"
+          cat $ACTIVE_LABELS_FILE
+
+      - name: remove all in active labels
+        run: |
+          grep -F -x -v -f $ACTIVE_LABELS_FILE $LABELS_IN_REPO_FILE > $TO_BE_DELETED_LABELS
+
+          while read line; do
+            echo $line
+
+            # enable this line when it is time to do real deletion - CZL 7/28/2022
+            # gh api --method DELETE -H "Accept: application/vnd.github+json" \
+            #   /repos/$OWNER_REPO/labels/$line            
+            
+          done < $TO_BE_DELETED_LABELS
