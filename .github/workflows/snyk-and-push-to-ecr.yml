@@ -27,7 +27,8 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_ORG_ID: ${{ secrets.SNYK_ORG_ID }}          
         run: |
-          snyk container test $DOCKER_REPO_WITH_TAG --severity-threshold=$SNYK_SEVERITY_THRESHOLD_LEVEL
+          echo "snykTestPassed=true" >> $GITHUB_ENV 
+          snyk container test $DOCKER_REPO_WITH_TAG --severity-threshold=$SNYK_SEVERITY_THRESHOLD_LEVEL || echo "snykTestPassed=false" >> $GITHUB_ENV 
       
       - name: login to ecr and push the image
         env:
@@ -45,3 +46,9 @@ jobs:
 
           docker tag $DOCKER_REPO_WITH_TAG $ECR_URL/$DOCKER_REPO_PREFIX/$DOCKER_REPO_WITH_TAG   
           docker push $ECR_URL/$DOCKER_REPO_PREFIX/$DOCKER_REPO_WITH_TAG     
+
+      - name: fail the pipeline, if snyk test failed
+        if: env.snykTestPassed == 'false'
+        run: |
+          echo "snyk test failed, please check the output from step 'run snyk test' for details."
+          echo "Please note that the container image has been push to ecr regardless!"
