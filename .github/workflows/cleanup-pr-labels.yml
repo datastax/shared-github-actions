@@ -1,15 +1,15 @@
 name: 🚮 cleanup inactive labels
 on:
-  pull_request:
-    branches: [feature/cleanup-pr-labels ]
+  # pull_request:
+  #  branches: [feature/cleanup-pr-labels ]
 
   workflow_dispatch: 
-    # inputs:
-    #   repo:
-    #     type: string  
-    #     required: true
-    #     description: 'git repo with organization, e.g. riptano/shared-github-actions'
-    #     default: riptano/astra-base-images
+    inputs:
+      repo:
+        type: string  
+        required: true
+        description: 'git repo with organization, e.g. riptano/shared-github-actions'
+        default: riptano/astra-base-images
      
 jobs: 
   cleanup_inactive_labels:
@@ -19,8 +19,8 @@ jobs:
       ACTIVE_LABELS_FILE: ACTIVE_LABELS_FILE
       TO_BE_DELETED_LABELS: TO_BE_DELETED_LABELS
       GITHUB_TOKEN: ${{ secrets.GB_TOKEN }}
-      # OWNER_REPO: ${{ inputs.repo }}
-      OWNER_REPO: riptano/astra-base-images
+      OWNER_REPO: ${{ inputs.repo }}
+      # OWNER_REPO: riptano/astra-base-images
     steps:
       - name: get all labels in the repo
         run: |
