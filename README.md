@@ -1,9 +1,9 @@
 # shared-github-actions   
   
-This repo contains common workflow [GitHub Actions](https://github.com/features/actions) code that used in many DataStax git repositories under riptano organization.
+This repo contains common workflow [GitHub Actions](https://github.com/features/actions) code that used in many DataStax git repositories under datastax organization.
 
 ## Why use shared code
-We use very similar CI/CD pipelines cut across many riptano git repositories. Examples are **security scan**, **code quality** control and many more in the future.  Using common shared code with custom configuration for different repositories helps us to promote code consistency across our whole organization, to eliminate/reduce redudant code and to cut cost of code maintenance.
+We use very similar CI/CD pipelines cut across many datastax git repositories. Examples are **security scan**, **code quality** control and many more in the future.  Using common shared code with custom configuration for different repositories helps us to promote code consistency across our whole organization, to eliminate/reduce redudant code and to cut cost of code maintenance.
 
 ## Type of the shared code
 There are two types of shared GitHub Actions code used:
@@ -35,9 +35,9 @@ There are two types of shared GitHub Actions code used:
 
 ## Example of how to use shared code
   - **Composite Action**  
-    https://github.com/riptano/cloud-ondemand/blob/master/.github/workflows/snyk-cli-scan.yml
+    https://github.com/datastax/cloud-ondemand/blob/master/.github/workflows/snyk-cli-scan.yml
   - **Reusable Workflows**  
-    https://github.com/riptano/cloud-ondemand/blob/master/.github/workflows/snyk-pr-cleanup.yml
+    https://github.com/datastax/cloud-ondemand/blob/master/.github/workflows/snyk-pr-cleanup.yml
 
 ## Sample output of Snyk 
 Sample Git Pull Request with Snyk finding summary:    

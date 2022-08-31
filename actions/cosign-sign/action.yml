@@ -81,7 +81,7 @@ runs:
         COSIGN_PASSWORD: ${{ inputs.COSIGN_PASSWORD }}
         COSIGN_KEY_FILE: _cosign_key_
         AUX_KEY: signedby
-        AUX_VALUE: datastax
+        AUX_VALUE: datastax-oss
         
       run: |
         echo $COSIGN_PRIVATE_BASE64 | base64 --decode > $COSIGN_KEY_FILE

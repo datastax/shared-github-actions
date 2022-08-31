@@ -34,7 +34,7 @@ runs:
         COSIGN_PASSWORD: ${{ inputs.COSIGN_PASSWORD }}
         COSIGN_KEY_FILE: _cosign_key_
         AUX_KEY: signedby
-        AUX_VALUE: datastax
+        AUX_VALUE: datastax-oss
         
       run: |
         images=$(echo "${{ inputs.container_images }}" | tr ", " "\n")

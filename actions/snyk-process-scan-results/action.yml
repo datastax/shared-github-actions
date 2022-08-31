@@ -13,7 +13,7 @@ inputs:
     description: "github token used for add comment for PR"
   orgSlug: 
     required: false
-    default: "riptano"
+    default: "ds-opensource"
     description: "snyk org slug string used for the url in UI"
 runs:
   using: "composite"  

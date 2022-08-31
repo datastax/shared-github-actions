@@ -10,7 +10,7 @@ env:
   ECR_URL: 237073351946.dkr.ecr.us-east-1.amazonaws.com  
   PUSHED_IMAGE: ${{ inputs.image_with_tag }}
   AUX_KEY: signedby
-  AUX_VALUE: datastax
+  AUX_VALUE: datastax-oss
   COSIGN_VERSION: v1.9.0
 
 jobs: 
