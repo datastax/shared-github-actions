@@ -53,4 +53,6 @@ runs:
 
 
     - name: Set up Snyk
-      uses: snyk/actions/setup@master 
+      uses: snyk/actions/setup@master
+      #uses: snyk/actions/setup@0.3.0
+      

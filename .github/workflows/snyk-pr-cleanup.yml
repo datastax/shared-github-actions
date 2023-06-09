@@ -90,19 +90,36 @@ jobs:
       - name: delete all snyk projects associated with this repo and the guarded branch
         run: |
           # retrieve all snyk project ids associated with this repo and the guarded branch
-          ids=$(curl -q -X POST -H "Authorization:${{ secrets.snyk_token }}" -H "Content-Type:application/json" \
+          ids=$(curl -sS -q -X POST -H "Authorization:${{ secrets.snyk_token }}" -H "Content-Type:application/json" \
                   -d "@${SNYK_FILTER_FILE}" https://snyk.io/api/v1/org/${{ secrets.snyk_org_id }}/projects  \
                 | jq -r '.projects[].id' )
 
+          # if return an empty set then we are done
+          if [[ -z "$ids" ]]; then
+            echo "empty snyk project is found, do nothing and exiting ..."
+            exit 0
+          fi
+          
+          delete_ok=true
+
           # remove the selected snyk project
           while read -r id; do
-            curl -i -X DELETE -H "Authorization:${{ secrets.snyk_token }}" \
-              "https://snyk.io/api/v1/org/${{ secrets.snyk_org_id }}/project/$id" \
-              || echo "warning: Failed to delete snyk project id = [$id], skipping... "
-            echo "deleted snyk project id = [$id]"
-          done <<< "$ids"                 
-      
-      - name: try to remove the tag asscoaited with the branch, if not used by others
+            http_code=$(curl -sS -w '%{http_code}' -o /dev/null -X DELETE -H "Authorization:${{ secrets.snyk_token }}" \
+              "https://snyk.io/api/v1/org/${{ secrets.snyk_org_id }}/project/$id")
+
+            if [ "${http_code}" -eq 200 ]; then
+              echo "deleted snyk project id = [$id]"
+            else
+              delete_ok=false
+              echo "::error ::Failed to delete snyk project id = [$id], http_code = [$http_code] skipping... "
+            fi
+          done <<< "$ids"
+
+          if [ "${delete_ok}" = false ]; then
+            exit 1
+          fi
+
+      - name: try to remove the tag associated with the branch, if not used by others
         run: |
           curl -q -X POST -H "Authorization:${{ secrets.snyk_token }}" -H "Content-Type:application/json" \
             https://snyk.io/api/v1/group/${{ env.SNYK_GROUP_ID }}/tags/delete  \

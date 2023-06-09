@@ -16,12 +16,16 @@ inputs:
   extra-snyk-options:
     required: false
     description: "extra snyk option that pass to snyk"
+  npm-or-yarn:
+    required: false
+    description: "node package management"
+    default: npm     
 
 runs:
   using: "composite"
   steps:
     - name: Set up node
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v3
       with:
         node-version: ${{ inputs.node-version }}
     
@@ -36,8 +40,8 @@ runs:
 
         for d in $dirs; do
           cd $GITHUB_WORKSPACE/$d
-          npm install
-          snyk monitor --org=${SNYK_ORG_ID} --file=package.json ${{ inputs.extra-snyk-options }} \
+          ${{ inputs.npm-or-yarn }} install
+          snyk monitor --org=${SNYK_ORG_ID} ${{ inputs.extra-snyk-options }} \
             ${SNYK_GROUP_OPTS} ${SNYK_TAGS} --policy-path=$GITHUB_WORKSPACE
     
         done

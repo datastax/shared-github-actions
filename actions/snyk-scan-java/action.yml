@@ -4,6 +4,14 @@ inputs:
   java-version:
     required: false
     description: "java version"
+  java-cache:
+    required: false
+    default: "maven"
+    description: "cache maven or gradle"
+  GRADLE_OPTS:
+    required: false
+    default: ""
+    description: "set for GRADLE_OPTS"
   directories:
     required: true
     description: "directories of maven modules"
@@ -22,24 +30,25 @@ runs:
   steps:
     - name: Set up java
       if: (inputs.java-version != '') 
-      uses: actions/setup-java@v2
+      uses: actions/setup-java@v3
       with:
-        java-version: ${{ inputs.java-version }}
+        java-version: '${{ inputs.java-version }}'
         distribution: 'temurin'
-        cache: maven    
+        cache: '${{ inputs.java-cache }}'    
 
     - name: Scan maven projects 
       shell: bash
       env:
         SNYK_TOKEN: ${{ inputs.SNYK_TOKEN }}
         SNYK_ORG_ID: ${{ inputs.SNYK_ORG_ID }}
+        GRADLE_OPTS: ${{ inputs.GRADLE_OPTS }}
       run: |
         dirs="${{ inputs.directories }}"
         dirs=$(echo $dirs | tr ", " "\n")
 
         for d in $dirs; do
           cd $GITHUB_WORKSPACE/$d
-          snyk monitor -DskipTests --org=${SNYK_ORG_ID} --all-projects ${{ inputs.extra-snyk-options }} \
-            ${SNYK_GROUP_OPTS} ${SNYK_TAGS} --policy-path=$GITHUB_WORKSPACE  --debug
-
+          snyk monitor --org=${SNYK_ORG_ID} --all-projects ${{ inputs.extra-snyk-options }} \
+            ${SNYK_GROUP_OPTS} ${SNYK_TAGS} --policy-path=$GITHUB_WORKSPACE  
+          # --debug -- -DskipTests  
         done

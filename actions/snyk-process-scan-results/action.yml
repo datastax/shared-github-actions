@@ -151,8 +151,8 @@ runs:
         # construct some base strings
         snyk_url="https://app.snyk.io/org/${{ inputs.orgSlug }}/project"
         snyk_site="Please see scan report at: <a href=\'${snyk_url}\'>${snyk_url}s</a>"
-        good_msg="✅ snyk scan did not find issues with severity level <b><i>${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}</i></b> or higher. $snyk_site <br> See snyk help on: https://datastax.jira.com/wiki/spaces/CE/pages/3333128196/Snyk+-+best+practice+on+Datastax+code+repositories#FAQ"
-        bad_msg="🚫 snyk scan found issues with severity level <b><i>${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}</i></b> or higher!"
+        good_msg=":heavy_check_mark: snyk scan did not find issues with severity level <b><i>${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}</i></b> or higher. $snyk_site <br> See snyk help on: https://datastax.jira.com/wiki/spaces/CE/pages/3333128196/Snyk+-+best+practice+on+Datastax+code+repositories#FAQ"
+        bad_msg=":x: snyk scan found issues with severity level <b><i>${{ env.SNYK_SEVERITY_THRESHOLD_LEVEL }}</i></b> or higher!"
         
 
         # check emptyness of the file FAILED_PROJECT_ID_WITH_ISSUE_FILE
@@ -165,31 +165,32 @@ runs:
           echo "...SNYK_TEST_PASSED=false"
           
           # file FAILED_PROJECT_ID_WITH_ISSUE_FILE is not empty, start to construct PR contain snyk UI deep links
-          bad_msg+="<br>Snyk findings:<br>-------------------------------------------------------<br> "
+          bad_msg+="<hr>"
+          bad_msg+="Issues found:<br> "
           while IFS= read -r line; do
             
             # grab project id
             prId=$(echo $line | cut -d "," -f 1)
-            
+
             # grab issue ids
             issueIds=$(echo $line | cut -d "," -f 2)
 
             # add deep link for synk project (module)
-            bad_msg+="<br>module: ${snyk_url}/$prId <br>issues: "
+            bad_msg+="<br>module: [$prId](${snyk_url}/$prId) <br>issues: "
             
             # loop through issues id strings seperated by spaces
             for issueId in $issueIds ; do 
-              bad_msg+=" https://security.snyk.io/vuln/$issueId,"
+              bad_msg+=" [$issueId](https://security.snyk.io/vuln/$issueId), "
             done 
 
-            # remove the last "," 
-            bad_msg=${bad_msg::-1}
+            # remove the last ", " 
+            bad_msg=${bad_msg::-2}
             bad_msg+="<br>"
           done < "$FAILED_PROJECT_ID_WITH_ISSUE_FILE"
 
           # add extra help at the end
-          bad_msg+="<br>-------------------------------------------------------"
-          bad_msg+="<br>More snyk help at: https://datastax.jira.com/wiki/spaces/CE/pages/3333128196/Snyk+-+best+practice+on+Datastax+code+repositories#FAQ"
+          bad_msg+="<hr>"
+          bad_msg+="More snyk help at: https://datastax.jira.com/wiki/spaces/CE/pages/3333128196/Snyk+-+best+practice+on+Datastax+code+repositories#FAQ"
 
           # store to the right varible SNYK_SCAN_COMMENT
           echo "SNYK_SCAN_COMMENT=$bad_msg" >> $GITHUB_ENV 
